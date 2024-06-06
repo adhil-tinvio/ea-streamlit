@@ -76,6 +76,12 @@ def main():
     ea_file = st.file_uploader(type=['pdf', 'jpg', 'png'])
     s3_client = boto3.client('s3')
 
+    st.write("This is **bold** text using markdown.")
+
+# Font size using HTML in markdown
+    st.markdown("<h1 style='font-size:20px;'>This is text with font size 20px</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='font-size:30px;'>This is text with font size 30px</h1>", unsafe_allow_html=True)
+
     if ea_file is not None:
         file_name = ea_file.name
         file_bytes = BytesIO(ea_file.getvalue())
