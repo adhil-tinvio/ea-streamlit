@@ -71,16 +71,10 @@ def analyze_expense_async(s3_bucket, s3_file):
 def main():
     st.title('Expense Analyzer Textract')
     st.write("")
-    st.write("Please Upload Invoice/Bill")
+    st.markdown("<h1 style='font-size:20px;'>Please upload Invoice/Bill</h1>")
     st.write("")
-    ea_file = st.file_uploader("a",type=['pdf', 'jpg', 'png'])
+    ea_file = st.file_uploader("", type=['pdf', 'jpg', 'png'])
     s3_client = boto3.client('s3')
-
-    st.write("This is **bold** text using markdown.")
-
-# Font size using HTML in markdown
-    st.markdown("<h1 style='font-size:20px;'>This is text with font size 20px</h1>", unsafe_allow_html=True)
-    st.markdown("<h1 style='font-size:30px;'>This is text with font size 30px</h1>", unsafe_allow_html=True)
 
     if ea_file is not None:
         file_name = ea_file.name
@@ -93,6 +87,7 @@ def main():
             file_name=file_name + "_textract.txt",
             mime='text/plain',
         )
+
 
 if __name__ == "__main__":
     main()
