@@ -2,6 +2,7 @@ import streamlit as st
 import boto3
 from io import BytesIO
 import time
+import os
 
 
 def analyze_expense_async(s3_bucket, s3_file):
@@ -69,7 +70,8 @@ def analyze_expense_async(s3_bucket, s3_file):
 
 
 def main():
-    st.markdown("<h1 style='text-align: center;'>Expense Analyzer</h1>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; font-size: 32px; font-weight: bold;'>Expense Analyzer</div>",
+                unsafe_allow_html=True)
 
     st.write("")
     st.markdown("""
@@ -86,13 +88,19 @@ def main():
         file_bytes = BytesIO(ea_file.getvalue())
         s3_client.upload_fileobj(file_bytes, st.secrets['BUCKET_NAME'], file_name)
         output = analyze_expense_async(st.secrets['BUCKET_NAME'], ea_file.name)
-        st.download_button(
-            label="Download Text File Response",
-            data=output,
-            file_name=file_name + "_textract.txt",
-            mime='text/plain',
-        )
 
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col1:
+            pass
+        with col2:
+            st.download_button(
+                label="Download Text File Response",
+                data=output,
+                file_name=os.path.splitext(file_name)[0] + "_textract.txt",
+                mime='text/plain',
+            )
+        with col3:
+            pass
 
 if __name__ == "__main__":
     main()
