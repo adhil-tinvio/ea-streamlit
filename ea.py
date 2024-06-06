@@ -71,7 +71,7 @@ def analyze_expense_async(s3_bucket, s3_file):
 def main():
     st.title('Expense Analyzer Textract')
     st.write("")
-    st.markdown("<h1 style='font-size:20px;'>Please upload Invoice/Bill</h1>")
+    st.markdown("<h1 style='font-size:20px;'>Please upload Invoice/Bill</h1>", unsafe_allow_html=True)
     st.write("")
     ea_file = st.file_uploader("", type=['pdf', 'jpg', 'png'])
     s3_client = boto3.client('s3')
