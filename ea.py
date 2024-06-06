@@ -81,6 +81,7 @@ def main():
     """, unsafe_allow_html=True)
     st.write("")
     ea_file = st.file_uploader("", type=['pdf', 'jpg', 'png'])
+    document_type = st.selectbox('Select the Document Type', ('Invoice', 'Bill'))
     s3_client = boto3.client('s3')
 
     if ea_file is not None:
