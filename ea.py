@@ -71,12 +71,12 @@ def analyze_expense_async(s3_bucket, s3_file):
 def main():
     st.title('Expense Analyzer Textract')
     ea_file = st.file_uploader("Upload Invoice/Bill", type=['pdf', 'jpg', 'png'])
-    file_name = ea_file.name
-    file_bytes = BytesIO(ea_file.getvalue())
     s3_client = boto3.client('s3')
-    s3_client.upload_fileobj(file_bytes, st.secrets['BUCKET_NAME'], file_name)
 
     if ea_file is not None:
+        file_name = ea_file.name
+        file_bytes = BytesIO(ea_file.getvalue())
+        s3_client.upload_fileobj(file_bytes, st.secrets['BUCKET_NAME'], file_name)
         output = analyze_expense_async(st.secrets['BUCKET_NAME'], ea_file.name)
         st.download_button(
             label="Download text file Response",
