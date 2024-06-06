@@ -78,7 +78,7 @@ def main():
         <div style='text-align: center; margin-bottom: 20px;'>
             <h1 style='font-size: 20px; font-weight: bold;'>Please upload Invoice/Bill</h1>
         </div>
-    """)
+    """,unsafe_allow_html=True)
     st.write("")
     ea_file = st.file_uploader("", type=['pdf', 'jpg', 'png'])
     s3_client = boto3.client('s3')
@@ -89,18 +89,16 @@ def main():
         s3_client.upload_fileobj(file_bytes, st.secrets['BUCKET_NAME'], file_name)
         output = analyze_expense_async(st.secrets['BUCKET_NAME'], ea_file.name)
 
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col1:
-            pass
-        with col2:
+        (col1, col2, col3, col4, col5, col6, col7, col8, col9,
+         col10, col11, col12, col13, col14, col15) = st.beta_columns(15)
+        with col8:
             st.download_button(
                 label="Download Text File Response",
                 data=output,
                 file_name=os.path.splitext(file_name)[0] + "_textract.txt",
                 mime='text/plain',
             )
-        with col3:
-            pass
+
 
 if __name__ == "__main__":
     main()
