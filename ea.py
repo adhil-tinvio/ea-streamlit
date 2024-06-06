@@ -84,3 +84,6 @@ def main():
             file_name=file_name + "+response.txt",
             mime='text/plain',
         )
+
+if __name__ == "__main__":
+    main()
