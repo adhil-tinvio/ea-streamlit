@@ -89,7 +89,7 @@ def main():
         s3_client.upload_fileobj(file_bytes, st.secrets['BUCKET_NAME'], file_name)
         output = analyze_expense_async(st.secrets['BUCKET_NAME'], ea_file.name)
 
-        col1, col2, col3 = st.columns([15, 1, 15])
+        col1, col2, col3 = st.columns([15, 10, 15])
         with col2:
             st.download_button(
                 label="Download Text File Response",
