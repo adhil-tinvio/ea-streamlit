@@ -81,7 +81,7 @@ def main():
         st.download_button(
             label="Download text file Response",
             data=output,
-            file_name=file_name + "+response.txt",
+            file_name=file_name + "_response.txt",
             mime='text/plain',
         )
 
