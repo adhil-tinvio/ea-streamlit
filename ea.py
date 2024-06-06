@@ -73,7 +73,7 @@ def main():
     st.write("")
     st.write("Please Upload Invoice/Bill")
     st.write("")
-    ea_file = st.file_uploader(type=['pdf', 'jpg', 'png'])
+    ea_file = st.file_uploader("a",type=['pdf', 'jpg', 'png'])
     s3_client = boto3.client('s3')
 
     st.write("This is **bold** text using markdown.")
