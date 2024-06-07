@@ -191,22 +191,6 @@ def convert_to_required_format(parsed_response, document_type):
     # print(f"receiver : {parsed_response['Invoice_Details'].get('RECEIVER_NAME')}")
     # print(f"vendor : {parsed_response['Invoice_Details'].get('VENDOR_NAME')}")
     # print(parsed_response)
-
-    """
-    if contact_name:
-        
-        matched_contact = find_best_match(contact_name, bt_type, organization_resource_id)
-        #logger.info(f'matched name : {matched_contact}')
-        if matched_contact:
-            contact_resource_id = matched_contact["contact_resource_id"]
-            contact_name_db = matched_contact["name"]
-            currency = matched_contact["currency"]
-        else:
-        contact_resource_id = None
-        contact_name_db = contact_name
-        currency = None
-    else:
-    """
     contact_resource_id = None
     contact_name_db = contact_name
     currency = None
@@ -410,7 +394,7 @@ def main():
         parsed_response = parse_response(output)
         st.write("parsed resp", parsed_response)
         req_for=convert_to_required_format(parsed_response,document_type)
-        st.write("rewqw resp", parsed_response)
+        st.write("rewqw resp", req_for)
 
         col1, col2, col3 = st.columns([15, 10, 15])
         with col2:
