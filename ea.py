@@ -69,19 +69,46 @@ def analyze_expense_async(s3_bucket, s3_file):
         return None
 
 
+def parse_response(response):
+    # print(response)
+    parsed = {"Invoice_Details": {}, "Items": []}
+
+    for expense_document in response.get('ExpenseDocuments', []):
+        for summary_field in expense_document.get('SummaryFields', []):
+            field_type = summary_field.get('Type', {}).get('Text')
+            field_value = summary_field.get('ValueDetection', {}).get('Text')
+            field_label = summary_field.get('LabelDetection', {}).get('Text')
+            if field_type not in parsed['Invoice_Details']:
+                parsed['Invoice_Details'][field_type] = field_value
+                parsed['Invoice_Details'][f"{field_type}_LABEL"] = field_label
+
+        for line_item_group in expense_document.get('LineItemGroups', []):
+            for line_item in line_item_group.get('LineItems', []):
+                item_details = {}
+                for line_item_field in line_item.get('LineItemExpenseFields', []):
+                    field_type = line_item_field.get('Type', {}).get('Text')
+                    field_value = line_item_field.get('ValueDetection', {}).get('Text')
+                    field_label = line_item_field.get('LabelDetection', {}).get('Text')
+                    item_details[field_type] = field_value
+                    item_details[f"{field_type}_LABEL"] = field_label
+                parsed['Items'].append(item_details)
+
+    return parsed
+
+
 def main():
     st.markdown("<div style='text-align: center; font-size: 50px; font-weight: bold;'>Expense Analyzer</div>",
                 unsafe_allow_html=True)
 
     st.write("")
+    document_type = st.selectbox('Select the Document Type', ('Invoice', 'Bill'))
     st.markdown("""
-        <div style='text-align: center; margin-bottom: 20px;'>
-            <h1 style='font-size: 20px; font-weight: bold;'>Please upload Invoice/Bill</h1>
-        </div>
-    """, unsafe_allow_html=True)
+            <div style='text-align: center; margin-bottom: 20px;'>
+                <h1 style='font-size: 20px; font-weight: bold;'>Please upload Invoice/Bill</h1>
+            </div>
+        """, unsafe_allow_html=True)
     st.write("")
     ea_file = st.file_uploader("", type=['pdf', 'jpg', 'png'])
-    document_type = st.selectbox('Select the Document Type', ('Invoice', 'Bill'))
     s3_client = boto3.client('s3')
 
     if ea_file is not None:
@@ -89,11 +116,13 @@ def main():
         file_bytes = BytesIO(ea_file.getvalue())
         s3_client.upload_fileobj(file_bytes, st.secrets['BUCKET_NAME'], file_name)
         output = analyze_expense_async(st.secrets['BUCKET_NAME'], ea_file.name)
+        parsed_response=parse_response(output)
+        st.write("parsed resp",parsed_response)
 
         col1, col2, col3 = st.columns([15, 10, 15])
         with col2:
             st.download_button(
-                label="Download Text File Response",
+                label="Download Raw Response",
                 data=output,
                 file_name=os.path.splitext(file_name)[0] + "_textract.txt",
                 mime='text/plain',
