@@ -51,6 +51,9 @@ def analyze_expense_async(s3_bucket, s3_file):
                 if not next_token:
                     break
 
+            return result
+
+            """
             print('Expense analysis completed successfully.')
             output_file = s3_file + "_op"
             # Save the response to a text file
@@ -60,6 +63,8 @@ def analyze_expense_async(s3_bucket, s3_file):
 
             with open(output_file, 'r') as f:
                 return f.read()
+            """
+
         else:
             print('Expense analysis failed.')
             return None
@@ -99,15 +104,14 @@ def parse_response(response):
 def main():
     st.markdown("<div style='text-align: center; font-size: 50px; font-weight: bold;'>Expense Analyzer</div>",
                 unsafe_allow_html=True)
-
     st.write("")
-    document_type = st.selectbox('Select the Document Type', ('Invoice', 'Bill'))
     st.markdown("""
             <div style='text-align: center; margin-bottom: 20px;'>
                 <h1 style='font-size: 20px; font-weight: bold;'>Please upload Invoice/Bill</h1>
             </div>
         """, unsafe_allow_html=True)
     st.write("")
+    document_type = st.selectbox('Select the Document Type', ('Invoice', 'Bill'))
     ea_file = st.file_uploader("", type=['pdf', 'jpg', 'png'])
     s3_client = boto3.client('s3')
 
