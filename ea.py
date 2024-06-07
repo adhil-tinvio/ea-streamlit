@@ -447,7 +447,6 @@ def process_result(result, document_type):
                     "bt_reference": result['purchase_ref'],
                     "items": subtotal_items,
                     "attachment_details": result['bill_details'],
-                    "bt_details": result['bt_details'],
                     "contact_details": result['contact_details'],
                     "overall_confidence_flag": False,
                     "agent": "lambda",
@@ -600,7 +599,7 @@ def main():
         st.write("")
         st.markdown("""
                     <div style='text-align: center; margin-bottom: 20px;'>
-                        <h1 style='font-size: 12px; font-weight: bold;'>Formatted Response from Expense Analyzer</h1>
+                        <h1 style='font-size: 17px; font-weight: bold;'>Formatted Response from Expense Analyzer</h1>
                     </div>
                 """, unsafe_allow_html=True)
         st.write("")
@@ -609,7 +608,7 @@ def main():
         st.write("")
         st.markdown("""
                         <div style='text-align: center; margin-bottom: 20px;'>
-                            <h1 style='font-size: 12px; font-weight: bold;'>Final Classification Response</h1>
+                            <h1 style='font-size: 17px; font-weight: bold;'>Final Classification Response</h1>
                         </div>
                     """, unsafe_allow_html=True)
         st.write("")
