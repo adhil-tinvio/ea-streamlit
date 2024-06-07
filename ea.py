@@ -553,7 +553,6 @@ def process_result(result, document_type):
                 response_dict = {
                     "bt_reference": result['purchase_ref'],
                     "attachment_details": result['bill_details'],
-                    "bt_details": result['bt_details'],
                     "contact_details": result['contact_details'],
                     "agent": "lambda",
                 }
