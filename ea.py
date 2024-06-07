@@ -495,8 +495,6 @@ def process_result(result, document_type):
 
                 return response_dict_final
         else:
-            # logger.info(result['items'])
-            start_time_classification = time.time()
             items_df = pd.DataFrame(result['items'])
             # print(items_df)
             # logger.info(f"this is the unique names : {items_df['item_name'].unique()}")
@@ -549,11 +547,13 @@ def process_result(result, document_type):
                 filtered_items = []  # We will store the filtered items here
 
                 # print(filtered_items)
+                merged_items = items_df.to_dict(orient='records')
 
                 response_dict = {
                     "bt_reference": result['purchase_ref'],
                     "attachment_details": result['bill_details'],
                     "contact_details": result['contact_details'],
+                    "items": merged_items,
                     "agent": "lambda",
                 }
 
