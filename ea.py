@@ -7,6 +7,8 @@ import re
 import datetime
 from datetime import datetime, timedelta
 from dateutil.parser import parse
+import pandas as pd
+import math
 
 french_months = {
     'Janvier': 'January', 'Février': 'February', 'Mars': 'March', 'Avril': 'April',
@@ -49,6 +51,17 @@ spanish_months = {
     'Mayo': 'May', 'Junio': 'June', 'Julio': 'July', 'Agosto': 'August',
     'Septiembre': 'September', 'Octubre': 'October', 'Noviembre': 'November', 'Diciembre': 'December'
 }
+
+
+def replace_nan_with_none(data):
+    if isinstance(data, list):
+        return [replace_nan_with_none(item) for item in data]
+    elif isinstance(data, dict):
+        return {key: replace_nan_with_none(value) for key, value in data.items()}
+    elif isinstance(data, (float, int)) and math.isnan(data):
+        return None
+    else:
+        return data
 
 
 def analyze_expense_async(s3_bucket, s3_file):
@@ -206,7 +219,6 @@ def convert_to_required_format(parsed_response, document_type):
         terms = f'Net {int(terms)}'
 
     required_format = {
-        #"organization_resource_id": organization_resource_id,
         "purchase_ref": parsed_response['Invoice_Details'].get('INVOICE_RECEIPT_ID'),
         "items": [],
         "bill_details": {
@@ -223,12 +235,6 @@ def convert_to_required_format(parsed_response, document_type):
             "terms": None
 
         },
-        """
-        "bt_details": {
-            "bt_resource_id": bt_resource_id,
-            "bt_reference": bt_reference
-        },
-        """
         "contact_details": {
             "name": contact_name_db,
             "notes": None,
@@ -372,6 +378,205 @@ def validate_date_range(date_millis):
     return date_millis
 
 
+def process_result(result, document_type):
+    if result is None:
+        response_dict = {
+            'status': 'FAILED',
+            'created_by': None,
+            'processed_payload': 'No text detected in document',
+            'OCR_details': {
+                'provider': 'TEXTRACT',
+                'mode': 'Sync',  # Or 'ASYNC' based on your process
+                'job_id': None,
+                'request_time': None,
+                'completion_time': None,
+                'status': 'Failed'
+            }
+            # Add any other initial fields here...
+        }
+        return response_dict
+    else:
+        if pd.DataFrame(result['items']).empty:
+            if result['bill_details']['Subtotal'] or result['bill_details']['total_amount']:
+                vendor_name = result['vendor_details'].get('vendor_name', "")
+                if document_type == 'INVOICE':
+                    item_name = 'Invoice Total'
+                else:
+                    if vendor_name == "":
+                        item_name = 'Bill Total'
+                    else:
+                        item_name = vendor_name + ' Bill Total'
+                # Accessing the subtotal
+                total_amount = result['bill_details']['total_amount']
+                total_amount = float(total_amount) if total_amount else 0
+                # Accessing the total_amount and check if it's None or 0, then use subtotal
+                subtotal = result['bill_details'].get('Subtotal', total_amount)  # Use .get for safe access
+                if (float(subtotal) == 0 or subtotal is None) and (
+                        total_amount != 0 and total_amount is not None):
+                    subtotal = total_amount
+                    # print(f"Here {total_amount}")
+                else:
+                    subtotal = float(
+                        subtotal) if subtotal else total_amount  # Fallback to subtotal if total_amount is 0 or None
+
+                # If contact found then use contact defaults on No Item
+
+                default_account_resource_id = None
+                default_tax_profile_resource_id = None
+                default_account_name = None
+
+                print(f"subtotal : {subtotal}")
+                print(f"total_amount : {total_amount}")
+
+                subtotal_items = [{
+                    "item_name": item_name,
+                    "unit": None,
+                    "quantity": 1.0,
+                    "unit_price": subtotal,
+                    "discount": 0,
+                    "amount": subtotal,
+                    "organization_account_resource_id": default_account_resource_id,
+                    "tax_profile_resource_id": default_tax_profile_resource_id,
+                    "item_resource_id": None,
+                    "confidence_flag": True,
+                    "account_name": default_account_name
+                }]
+
+                # Since we're overriding items, we assume there's no need to continue with classification
+                response_dict = {
+                    "bt_reference": result['purchase_ref'],
+                    "items": subtotal_items,
+                    "attachment_details": result['bill_details'],
+                    "bt_details": result['bt_details'],
+                    "contact_details": result['contact_details'],
+                    "overall_confidence_flag": False,
+                    "agent": "lambda",
+                }
+
+                response_dict_final = {
+                    'status': 'COMPLETED',
+                    'created_by': None,
+                    'processed_payload': response_dict,
+                    'OCR_details': {
+                        'provider': 'TEXTRACT',
+                        'mode': 'Sync',
+                        'job_id': None,
+                        'request_time': None,
+                        'completion_time': None,
+                        'status': None
+                    }
+                }
+
+                return response_dict_final
+
+            else:
+                response_dict = {
+                    "bt_reference": result['purchase_ref'],
+                    "items": None,
+                    "attachment_details": result['bill_details'],
+                    "bt_details": result['bt_details'],
+                    "contact_details": result['contact_details'],
+                    "overall_confidence_flag": None,
+                    "agent": "lambda",
+                }
+
+                response_dict_final = {
+                    'status': 'COMPLETED',
+                    'created_by': None,
+                    'processed_payload': response_dict,
+                    'OCR_details': {
+                        'provider': 'TEXTRACT',
+                        'mode': 'Sync',
+                        'job_id': None,
+                        'request_time': None,
+                        'completion_time': None,
+                        'status': None
+                    }
+                }
+
+                return response_dict_final
+        else:
+            # logger.info(result['items'])
+            start_time_classification = time.time()
+            items_df = pd.DataFrame(result['items'])
+            # print(items_df)
+            # logger.info(f"this is the unique names : {items_df['item_name'].unique()}")
+            if items_df['item_name'].isnull().all():
+                items_df['organization_account_resource_id'] = None
+                items_df['confidence_flag'] = False
+                items_df['item_resource_id'] = None
+                items_df['tax_profile_resource_id'] = None
+                items_df['account_name'] = None
+                items_df_copy = items_df.copy()  # Create a copy of df
+                items_df_copy = items_df_copy.to_dict(orient='records')
+                response_dict = {
+                    "bt_reference": result['purchase_ref'],
+                    "items": items_df_copy,
+                    "attachment_details": result['bill_details'],
+                    "bt_details": result['bt_details'],
+                    "contact_details": result['contact_details'],
+                    "overall_confidence_flag": False,
+                    "agent": "lambda",
+                }
+
+                response_dict_final = {
+                    'status': 'COMPLETED',
+                    'created_by': None,
+                    'processed_payload': response_dict,
+                    'OCR_details': {
+                        'provider': 'TEXTRACT',
+                        'mode': 'Sync',  # Or 'ASYNC' based on your process
+                        'job_id': None,
+                        'request_time': None,
+                        'completion_time': None,
+                        'status': None
+                    }
+                    # Add any other initial fields here...
+                }
+                # logger.info(f"response_dict_final : {response_dict_final}")
+
+                return response_dict_final
+
+            else:
+                default_account_resource_id = None
+                default_tax_profile_resource_id = None
+                default_account_name = None
+
+                # for item in merged_items:
+                #     if not item["item_name"]:
+                #         item["item_name"] = ''
+                #         item["confidence_flag"] = False
+
+                filtered_items = []  # We will store the filtered items here
+
+                # print(filtered_items)
+
+                response_dict = {
+                    "bt_reference": result['purchase_ref'],
+                    "attachment_details": result['bill_details'],
+                    "bt_details": result['bt_details'],
+                    "contact_details": result['contact_details'],
+                    "agent": "lambda",
+                }
+
+                response_dict = replace_nan_with_none(response_dict)
+
+                response_dict_final = {
+                    'status': 'COMPLETED',
+                    'created_by': None,
+                    'processed_payload': response_dict,
+                    'OCR_details': {
+                        'provider': 'TEXTRACT',
+                        'mode': 'Sync',  # Or 'ASYNC' based on your process
+                        'job_id': None,
+                        'request_time': None,
+                        'completion_time': None,
+                        'status': None
+                    }
+                }
+                return response_dict_final
+
+
 def main():
     st.markdown("<div style='text-align: center; font-size: 50px; font-weight: bold;'>Expense Analyzer</div>",
                 unsafe_allow_html=True)
@@ -392,9 +597,24 @@ def main():
         s3_client.upload_fileobj(file_bytes, st.secrets['BUCKET_NAME'], file_name)
         output, txt_output = analyze_expense_async(st.secrets['BUCKET_NAME'], ea_file.name)
         parsed_response = parse_response(output)
-        st.write("parsed resp", parsed_response)
-        req_for=convert_to_required_format(parsed_response,document_type)
-        st.write("rewqw resp", req_for)
+        st.write("")
+        st.markdown("""
+                    <div style='text-align: center; margin-bottom: 20px;'>
+                        <h1 style='font-size: 12px; font-weight: bold;'>Formatted Response from Expense Analyzer</h1>
+                    </div>
+                """, unsafe_allow_html=True)
+        st.write("")
+        st.write(parsed_response)
+        req_for = convert_to_required_format(parsed_response, document_type)
+        st.write("")
+        st.markdown("""
+                        <div style='text-align: center; margin-bottom: 20px;'>
+                            <h1 style='font-size: 12px; font-weight: bold;'>Final Classification Response</h1>
+                        </div>
+                    """, unsafe_allow_html=True)
+        st.write("")
+        final_resp = process_result(req_for,document_type)
+        st.write(final_resp)
 
         col1, col2, col3 = st.columns([15, 10, 15])
         with col2:
